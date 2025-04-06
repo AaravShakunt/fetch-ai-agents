@@ -1,14 +1,25 @@
 """
 This agent can send a company website URL to the AI model agent and display the company information.
 """
+import os
 from uagents import Agent, Context, Model
 
-agent = Agent(name="company_requestor")
+agent = Agent(name="company_requestor", port=8003, endpoint=["http://localhost:8003/submit"])
 
 # Replace with the website you want to get information about
-WEBSITE_URL = "speargrowth.com"
+WEBSITE_URL = "apple.com"
 
-COMPANY_INFO_PROCESSOR_ADDRESS = "agent1qgk5zq6eczlunmdu3ffc009v8qjle4nvdly8yjwxupztylkrf0r7gnx5fjy"
+# Get agent address from environment with fallback options
+# For local testing, we'll use the address of the locally hosted website analyzer agent
+# In production, use the remote agent address
+USE_LOCAL_AGENT = os.environ.get("USE_LOCAL_AGENT", "true").lower() == "true"
+
+# Local and remote agent addresses
+LOCAL_AGENT_ADDRESS = "agent1q0zllemwuq5swr5tfudeeq7k9a4nrs92q6f8cft64cgzvv5mmgs77csa7jx"  # This should match the website_analyzer agent address
+REMOTE_AGENT_ADDRESS = "agent1qgk5zq6eczlunmdu3ffc009v8qjle4nvdly8yjwxupztylkrf0r7gnx5fjy"
+
+# Select the appropriate address based on environment
+COMPANY_INFO_PROCESSOR_ADDRESS = LOCAL_AGENT_ADDRESS if USE_LOCAL_AGENT else REMOTE_AGENT_ADDRESS
 
 class Request(Model):
     website: str
@@ -34,6 +45,12 @@ class CompanyData(Model):
 async def request_company_info(ctx: Context):
     """Send website URL to company info processor agent"""
     ctx.logger.info(f"Requesting company information for website: {WEBSITE_URL}")
+    
+    if USE_LOCAL_AGENT:
+        ctx.logger.info(f"Using local website analyzer agent at address: {COMPANY_INFO_PROCESSOR_ADDRESS}")
+    else:
+        ctx.logger.info(f"Using remote website analyzer agent at address: {COMPANY_INFO_PROCESSOR_ADDRESS}")
+    
     await ctx.send(COMPANY_INFO_PROCESSOR_ADDRESS, Request(website=WEBSITE_URL))
 
 

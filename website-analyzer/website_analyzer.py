@@ -4,7 +4,7 @@ import requests
 from bs4 import BeautifulSoup
 from uagents import Agent, Context, Model
 
-agent = Agent(name="company_processor")
+agent = Agent(name="company_processor", port=8004, endpoint=["http://localhost:8004/submit"])
 
 # Hugging Face API configuration
 # Get a free API token from https://huggingface.co/settings/tokens
@@ -197,6 +197,9 @@ def extract_field(text, field_name, default_value):
     
     return default_value
 
+@agent.on_event("startup")
+async def startup(ctx: Context):
+    ctx.logger.info(f"Website analyzer agent started with address: {agent.address}")
 
 @agent.on_message(model=Request)
 async def handle_request(ctx: Context, sender: str, request: Request):
