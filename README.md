@@ -36,30 +36,7 @@ Everything{company} leverages a coordinated team of specialized, modular agents 
 
 ---
 
-## 📌 Notes
-
-- Ensure all linked agents are running and accessible at the URLs provided.
-- The system is designed to be extendable — add any future integrations as needed.
-- Can be connected to databases and frontend dashboards for full-stack applications.
-
----
-
-## ✅ Optional Improvements
-
-- Add retries for failed requests
-- Persist responses to a database
-- Display results in a frontend dashboard (React, Vue, etc.)
-- Add webhook or notification system for updates
-
----
 
 ## 🌟 Contributing
 
 Contributions are welcome! If you have ideas for new agents or improvements, feel free to open an issue or submit a pull request.
-
----
-
-## 📄 License
-
-This project is open-source and available under the MIT License.
-
