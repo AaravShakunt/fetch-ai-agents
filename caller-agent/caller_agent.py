@@ -55,15 +55,17 @@ class Error(Model):
 
 
 class CompanyData(Model):
+    # Core fields likely to be found on homepage
     company_name: str
-    industry: str
-    products_services: str
-    company_size: str
-    headquarters: str
-    year_founded: str
-    leadership: str
-    description: str
+    domain: str
+    main_offerings: str
+    tagline: str
+    summary: str
     source_url: str
+    
+    # Optional fields that might be extracted if available
+    contact_info: str = "Not found"
+    social_media: str = "Not found"
 
 
 @agent.on_event("startup")
@@ -81,26 +83,24 @@ async def handle_company_data(ctx: Context, sender: str, data: CompanyData):
     """Log response from company info processor agent"""
     ctx.logger.info(f"Received company information from processor agent:")
     ctx.logger.info(f"Company Name: {data.company_name}")
-    ctx.logger.info(f"Industry: {data.industry}")
-    ctx.logger.info(f"Products/Services: {data.products_services}")
-    ctx.logger.info(f"Company Size: {data.company_size}")
-    ctx.logger.info(f"Headquarters: {data.headquarters}")
-    ctx.logger.info(f"Year Founded: {data.year_founded}")
-    ctx.logger.info(f"Leadership: {data.leadership}")
-    ctx.logger.info(f"Description: {data.description}")
+    ctx.logger.info(f"Domain: {data.domain}")
+    ctx.logger.info(f"Main Offerings: {data.main_offerings}")
+    ctx.logger.info(f"Tagline: {data.tagline}")
+    ctx.logger.info(f"Summary: {data.summary}")
+    ctx.logger.info(f"Contact Info: {data.contact_info}")
+    ctx.logger.info(f"Social Media: {data.social_media}")
     ctx.logger.info(f"Source URL: {data.source_url}")
     
-    # Extract just the company name without any JSON syntax
-    # Remove any quotes and other JSON characters that might be in the string
+    # Clean up company name for news request
     company_name = data.company_name.strip()
-    if company_name.startswith('"'):
-        company_name = company_name.strip('"')
-    if ',' in company_name:
-        company_name = company_name.split(',')[0]
-    
-    # Clean up any remaining JSON syntax artifacts
+    # Remove any quotes and other JSON syntax that might be in the string
     for char in ['"', "'", '{', '}', '[', ']']:
         company_name = company_name.replace(char, '')
+    
+    # If company name contains common suffixes, remove them for better news search
+    for suffix in [" Inc", " LLC", " Ltd", " Corporation", " Corp", " Co", " Group"]:
+        if company_name.endswith(suffix):
+            company_name = company_name[:-len(suffix)]
     
     ctx.logger.info(f"Requesting news about '{company_name}' from news agent")
     
@@ -127,7 +127,7 @@ async def handle_news_response(ctx: Context, sender: str, news: NewsResponse):
             ctx.logger.info(f"Summary content: {news.summary.summary[:100]}...") # Print first 100 chars
             ctx.logger.info(f"Summary generated successfully")
         
-        for i, article in enumerate(news.articles[:1], 1):  # Only get the first article
+        for i, article in enumerate(news.articles[:3], 1):  # Show first 3 articles
             ctx.logger.info(f"Article {i}: {article.title}")
             ctx.logger.info(f"Description: {article.description}")
             ctx.logger.info(f"Source: {article.source}")
@@ -138,6 +138,11 @@ async def handle_news_response(ctx: Context, sender: str, news: NewsResponse):
             ctx.logger.info("---")
     else:
         ctx.logger.info("No articles found in news response.")
+    
+    # A comprehensive report could be generated here combining company info and news
+    if company_data and news_data:
+        ctx.logger.info("Both company data and news data are available")
+        ctx.logger.info("A full business intelligence report could be generated")
 
 
 @agent.on_message(model=Error)
