@@ -7,12 +7,11 @@ Provide a company name and optionally their website, and this agent will orchest
 
 ## Links to all the hosted agents
 
-1. [Everything {company}]((https://agentverse.ai/agents/details/agent1qtav6a80gl7caqadymzgxmuz44ftxfz6gwjh907ljurxy46xzw7tc5qzfxf/editor))
-2. [Everything {company} from website (The Profiler)]((https://agentverse.ai/agents/details/agent1qtz02l3radupfymrepmcmvjfpwd9c6zrql5u8hfykvqvaxm2wumm7rx0txw/profile))
-3. [News Sentiment (The Sentiment Gauge)]((https://agentverse.ai/agents/details/agent1qdsxvhmlg9mqlnqvujvs7cxf3x5yhglsqylgdgqfc0r0tfpx8yre6ghhh8s/profile))
-4. [Ticker Fetcher (The Stock Detective)]((https://agentverse.ai/agents/details/agent1qd7wrm64tupqvtkpwu3ds5awmk30fmwnedr4fm36ty5na97aawjrc0p9mx9/profile))
-5. [Revenue Summary Agent (The Financial Analyst)]((https://agentverse.ai/agents/details/agent1qwg43f9euf5vdtz5kxkz6mdch32sjgdqjdlx0n4un5lzpmj64ws85gfydhn/profile))
-
+1. [Everything {company}](https://agentverse.ai/agents/details/agent1qtav6a80gl7caqadymzgxmuz44ftxfz6gwjh907ljurxy46xzw7tc5qzfxf/editor)
+2. [Everything {company} from website (The Profiler)](https://agentverse.ai/agents/details/agent1qtz02l3radupfymrepmcmvjfpwd9c6zrql5u8hfykvqvaxm2wumm7rx0txw/profile)
+3. [News Sentiment (The Sentiment Gauge)](https://agentverse.ai/agents/details/agent1qdsxvhmlg9mqlnqvujvs7cxf3x5yhglsqylgdgqfc0r0tfpx8yre6ghhh8s/profile)
+4. [Ticker Fetcher (The Stock Detective)](https://agentverse.ai/agents/details/agent1qd7wrm64tupqvtkpwu3ds5awmk30fmwnedr4fm36ty5na97aawjrc0p9mx9/profile)
+5. [Revenue Summary Agent (The Financial Analyst)](https://agentverse.ai/agents/details/agent1qwg43f9euf5vdtz5kxkz6mdch32sjgdqjdlx0n4un5lzpmj64ws85gfydhn/profile)
 
 
 ---
