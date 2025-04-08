@@ -1,3 +1,7 @@
+"""
+This agent writes a greeting in the logs on startup.
+"""
+
 from uagents import Agent, Context, Model
 import requests
 import re
