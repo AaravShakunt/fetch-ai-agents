@@ -4,13 +4,12 @@ import requests
 from bs4 import BeautifulSoup
 from uagents import Agent, Context, Model
 
-agent = Agent(name="company_processor", port=8004, endpoint=["http://localhost:8004/submit"])
+agent = Agent(name="company_processor", port=8004)
 
 # Hugging Face API configuration
-# Get a free API token from https://huggingface.co/settings/tokens
 HUGGINGFACE_API_KEY = os.environ.get("HUGGINGFACE_API_KEY", "hf_api_key_here")
 
-# Using the Falcon-7B-Instruct model - a good free option for instruction following
+# Using the Falcon-7B-Instruct model
 HUGGINGFACE_API_URL = "https://api-inference.huggingface.co/models/tiiuae/falcon-7b-instruct"
 HEADERS = {
     "Authorization": f"Bearer {HUGGINGFACE_API_KEY}",
@@ -63,8 +62,8 @@ def extract_text_from_website(url):
         chunks = (phrase.strip() for line in lines for phrase in line.split("  "))
         text = ' '.join(chunk for chunk in chunks if chunk)
         
-        # Return a reasonable chunk of text (GPT context limits)
-        return text[:4000], url  # Using a smaller limit for Hugging Face models
+        # Return a reasonable chunk of text
+        return text[:4000], url
     except Exception as e:
         return f"Error extracting content from website: {str(e)}", url
 
@@ -72,32 +71,14 @@ def extract_text_from_website(url):
 def get_company_info(website_text, website_url):
     """Extract company information using a Hugging Face model"""
     # Create a prompt for the model
-    prompt = f"""
-You are a helpful AI assistant that extracts company information from website text.
-Analyze the following text from {website_url} and extract key company details.
-
-Website content:
-{website_text}
-
-Please extract the following information in JSON format:
-- company_name: The name of the company
-- industry: The industry or sector the company operates in
-- products_services: Description of products and services offered
-- company_size: Number of employees (if available, otherwise 'Not found')
-- headquarters: Location of headquarters (if available, otherwise 'Not found')
-- year_founded: Year the company was founded (if available, otherwise 'Not found')
-- leadership: Key executives or leadership team (if available, otherwise 'Not found')
-- description: Mission statement or company description
-
-Respond ONLY with a valid JSON object containing these fields.
-"""
+    prompt = f"You are a helpful AI assistant that extracts company information from website text. Analyze the following text from {website_url} and extract key company details.Website content:{website_text}Please extract the following information in JSON format:- company_name: The name of the company- industry: The industry or sector the company operates in- products_services: Description of products and services offered- company_size: Number of employees (if available, otherwise 'Not found')- headquarters: Location of headquarters (if available, otherwise 'Not found')- year_founded: Year the company was founded (if available, otherwise 'Not found')- leadership: Key executives or leadership team (if available, otherwise 'Not found')- description: Mission statement or company descriptionRespond ONLY with a valid JSON object containing these fields."
 
     # Prepare the payload for the Hugging Face API
     payload = {
         "inputs": prompt,
         "parameters": {
             "max_new_tokens": 500,
-            "temperature": 0.1,  # Low temperature for more deterministic output
+            "temperature": 0.1,
             "return_full_text": False
         }
     }
@@ -131,6 +112,9 @@ Respond ONLY with a valid JSON object containing these fields.
                 for field in required_fields:
                     if field not in parsed_data:
                         parsed_data[field] = "Not found"
+                    elif isinstance(parsed_data[field], dict) or isinstance(parsed_data[field], list):
+                        # Convert nested JSON objects to strings to prevent serialization issues
+                        parsed_data[field] = str(parsed_data[field])
                 
                 # Add source URL
                 parsed_data["source_url"] = website_url
@@ -141,20 +125,22 @@ Respond ONLY with a valid JSON object containing these fields.
                 raise ValueError("No JSON structure found in response")
                 
         except (json.JSONDecodeError, ValueError) as e:
-            # Fallback to extracting structured information from text
-            # This is for cases where the model doesn't return proper JSON
-            company_data = {
-                "company_name": extract_field(generated_text, "company_name", website_url),
-                "industry": extract_field(generated_text, "industry", "Technology"),
-                "products_services": extract_field(generated_text, "products_services", "Various products and services"),
-                "company_size": extract_field(generated_text, "company_size", "Not found"),
-                "headquarters": extract_field(generated_text, "headquarters", "Not found"),
-                "year_founded": extract_field(generated_text, "year_founded", "Not found"),
-                "leadership": extract_field(generated_text, "leadership", "Not found"),
-                "description": extract_field(generated_text, "description", "Company providing various services"),
+            # Fallback with clean extraction
+            domain = website_url.split('//')[-1].split('/')[0].replace('www.', '')
+            company_name = domain.split('.')[0].title()
+            
+            fallback_data = {
+                "company_name": extract_field_clean(generated_text, "company_name", company_name),
+                "industry": extract_field_clean(generated_text, "industry", "Technology"),
+                "products_services": extract_field_clean(generated_text, "products_services", "Various products and services"),
+                "company_size": extract_field_clean(generated_text, "company_size", "Not found"),
+                "headquarters": extract_field_clean(generated_text, "headquarters", "Not found"),
+                "year_founded": extract_field_clean(generated_text, "year_founded", "Not found"),
+                "leadership": extract_field_clean(generated_text, "leadership", "Not found"),
+                "description": extract_field_clean(generated_text, "description", "Company providing various services"),
                 "source_url": website_url
             }
-            return CompanyData(**company_data)
+            return CompanyData(**fallback_data)
             
     except requests.exceptions.RequestException as e:
         return Error(text=f"Error connecting to Hugging Face API: {str(e)}")
@@ -177,29 +163,51 @@ Respond ONLY with a valid JSON object containing these fields.
         return CompanyData(**fallback_data)
 
 
-def extract_field(text, field_name, default_value):
-    """Helper function to extract field values from text when JSON parsing fails"""
-    # Try to find the field in the text
-    lower_text = text.lower()
-    field_pos = lower_text.find(field_name.lower())
-    
-    if field_pos != -1:
-        # Find the value after the field name
-        start = field_pos + len(field_name)
-        # Look for the next 50 characters or until end of line
-        end = min(start + 100, len(text))
-        snippet = text[start:end]
+def extract_field_clean(text, field_name, default_value):
+    """Improved helper function to extract field values from text"""
+    try:
+        # Try to find the field in the text
+        lower_text = text.lower()
+        field_pos = lower_text.find(field_name.lower())
         
-        # Clean up the snippet
-        snippet = snippet.strip(': "\'.,\n\t')
-        if snippet:
-            return snippet
+        if field_pos != -1:
+            # Find the value after the field name
+            start = field_pos + len(field_name)
+            
+            # Look for the next field or end of text
+            next_field_pos = float('inf')
+            for field in ["company_name", "industry", "products_services", "company_size", 
+                        "headquarters", "year_founded", "leadership", "description"]:
+                if field != field_name:
+                    pos = lower_text.find(field.lower(), start)
+                    if pos != -1 and pos < next_field_pos:
+                        next_field_pos = pos
+            
+            # Extract the snippet
+            end = min(next_field_pos, len(text)) if next_field_pos != float('inf') else len(text)
+            snippet = text[start:end]
+            
+            # Clean up the snippet - remove JSON syntax and quotes
+            snippet = snippet.strip().strip(':"\',.{}\n\t')
+            
+            # Remove any trailing commas or quotes
+            if snippet.endswith(','):
+                snippet = snippet[:-1]
+            
+            # Check if snippet is not empty
+            if snippet and not snippet.isspace():
+                return snippet
+                
+    except Exception:
+        pass
     
     return default_value
 
-@agent.on_event("startup")
-async def startup(ctx: Context):
-    ctx.logger.info(f"Website analyzer agent started with address: {agent.address}")
+
+def extract_field(text, field_name, default_value):
+    """Legacy function - kept for backward compatibility"""
+    return extract_field_clean(text, field_name, default_value)
+
 
 @agent.on_message(model=Request)
 async def handle_request(ctx: Context, sender: str, request: Request):
@@ -217,10 +225,14 @@ async def handle_request(ctx: Context, sender: str, request: Request):
     
     # Process with Hugging Face model
     ctx.logger.info("Analyzing website content with Hugging Face model...")
-    response = get_company_info(website_text, url)
+    company_data = get_company_info(website_text, url)
+    
+    # Log the company data before sending
+    if isinstance(company_data, CompanyData):
+        ctx.logger.info(f"Sending company data: {company_data.company_name}")
     
     # Send response back
-    await ctx.send(sender, response)
+    await ctx.send(sender, company_data)
 
 
 if __name__ == "__main__":
